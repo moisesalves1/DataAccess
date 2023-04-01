@@ -11,10 +11,10 @@ namespace DataAccess
         {
             const string connectionString = "Server=localhost,1433;Database=balta;User ID=sa;password=1q2w3e4r@#$; TrustServerCertificate=True";
 
-            
+
             using (var connection = new SqlConnection(connectionString))
-            {         
-                
+            {
+
                 // CreateCategory(connection);  
                 // CreateManyCategory(connection);  
                 // UpdateCategory(connection); 
@@ -24,9 +24,11 @@ namespace DataAccess
                 // ExecuteProcedure(connection);
                 // ExecuteReadProcedure(connection);
                 // ExecuteScalar(connection);
-                ReadView(connection);
-                
-                
+                // ReadView(connection);
+                // OneToOne(connection);
+                OneToMany(connection);
+
+
             }
 
         }
@@ -34,12 +36,12 @@ namespace DataAccess
         static void ListCategories(SqlConnection connection)
         {
             var categories = connection.Query<Category>("SELECT [Id], [Title] FROM [Category]");
-                foreach(var categoria in categories)
-                {
-                    Console.WriteLine($"{categoria.Id} - {categoria.Title}");
-                }
+            foreach (var categoria in categories)
+            {
+                Console.WriteLine($"{categoria.Id} - {categoria.Title}");
+            }
         }
-    
+
         static void CreateCategory(SqlConnection connection)
         {
             var category = new Category();
@@ -62,17 +64,18 @@ namespace DataAccess
                 @Description, 
                 @Featured)";
 
-                var rows = connection.Execute(insertSql, new {
-                    category.Id,
-                    category.Title,
-                    category.Url,
-                    category.Summary,
-                    category.Order,
-                    category.Description,
-                    category.Featured
-                }); 
+            var rows = connection.Execute(insertSql, new
+            {
+                category.Id,
+                category.Title,
+                category.Url,
+                category.Summary,
+                category.Order,
+                category.Description,
+                category.Featured
+            });
 
-                Console.WriteLine($"{rows} linhas inseridas");
+            Console.WriteLine($"{rows} linhas inseridas");
         }
 
         static void GetCategory(SqlConnection connection)
@@ -91,7 +94,8 @@ namespace DataAccess
         static void UpdateCategory(SqlConnection connection)
         {
             var updateQuery = "UPDATE [Category] SET [Title]=@title WHERE [Id]=@id";
-            var rows = connection.Execute(updateQuery, new {
+            var rows = connection.Execute(updateQuery, new
+            {
                 id = new Guid("af3407aa-11ae-4621-a2ef-2028b85507c4"),
                 title = "Frontend 2023"
             });
@@ -103,7 +107,8 @@ namespace DataAccess
         static void DeleteCategory(SqlConnection connection)
         {
             var deleteQuery = "DELETE FROM [Category] WHERE [Id]=@id";
-            var rows = connection.Execute(deleteQuery, new {
+            var rows = connection.Execute(deleteQuery, new
+            {
                 id = new Guid("4e827812-52d8-4bb9-9626-5b87581855bd")
             });
 
@@ -142,7 +147,7 @@ namespace DataAccess
                 @Description, 
                 @Featured)";
 
-                var rows = connection.Execute(insertSql, new[]{ 
+            var rows = connection.Execute(insertSql, new[]{
                 new
                 {
                     category.Id,
@@ -162,15 +167,15 @@ namespace DataAccess
                     category2.Order,
                     category2.Description,
                     category2.Featured
-                }}); 
+                }});
 
-                Console.WriteLine($"{rows} linhas inseridas");
+            Console.WriteLine($"{rows} linhas inseridas");
         }
 
         static void ExecuteProcedure(SqlConnection connection)
         {
             var sql = "[spDeleteStudent]";
-            var pars = new { StudentId = "3af85085-5f74-49ab-b4a3-0a040a748aec"};
+            var pars = new { StudentId = "3af85085-5f74-49ab-b4a3-0a040a748aec" };
             var affectedRows = connection.Execute(sql, pars, commandType: System.Data.CommandType.StoredProcedure);
             Console.WriteLine($"{affectedRows} linhas afetadas");
         }
@@ -178,9 +183,9 @@ namespace DataAccess
         static void ExecuteReadProcedure(SqlConnection connection)
         {
             var sql = "[spGetCoursesByCategory]";
-            var pars = new { CategoryId = "09ce0b7b-cfca-497b-92c0-3290ad9d5142"};
+            var pars = new { CategoryId = "09ce0b7b-cfca-497b-92c0-3290ad9d5142" };
             var courses = connection.Query(sql, pars, commandType: System.Data.CommandType.StoredProcedure);
-            
+
             foreach (var item in courses)
             {
                 Console.WriteLine(item.Title);
@@ -209,29 +214,85 @@ namespace DataAccess
                 @Description, 
                 @Featured)";
 
-                var id = connection.ExecuteScalar<Guid>(insertSql, new {
-                    category.Title,
-                    category.Url,
-                    category.Summary,
-                    category.Order,
-                    category.Description,
-                    category.Featured
-                }); 
+            var id = connection.ExecuteScalar<Guid>(insertSql, new
+            {
+                category.Title,
+                category.Url,
+                category.Summary,
+                category.Order,
+                category.Description,
+                category.Featured
+            });
 
-                Console.WriteLine($"A cateogira inserida foi {id}");
+            Console.WriteLine($"A cateogira inserida foi {id}");
         }
 
         static void ReadView(SqlConnection connection)
         {
             var sql = "SELECT * FROM [vwCourses]";
             var courses = connection.Query(sql);
-                foreach(var item in courses)
-                {
-                    Console.WriteLine($"{item.Id} - {item.Title}");
-                }
+            foreach (var item in courses)
+            {
+                Console.WriteLine($"{item.Id} - {item.Title}");
+            }
         }
 
-        
+
+        static void OneToOne(SqlConnection connection)
+        {
+            var sql = @"
+                SELECT
+                    *
+                FROM
+                    [CareerItem]
+                INNER JOIN
+                    [Course] ON [CareerItem].[CourseId] = [Course].[Id]";
+
+            var items = connection.Query<CareerItem, Course, CareerItem>(
+                sql,
+                (careerItem, course) =>
+                {
+                    careerItem.Course = course;
+                    return careerItem;
+                }, splitOn: "Id");
+
+            foreach (var item in items)
+            {
+                Console.WriteLine($"{item.Title} - Course:{item.Course.Title}");
+            }
+        }
+
+        static void OneToMany(SqlConnection connection)
+        {
+            var sql = @"
+                SELECT 
+    [Career].[Id],
+    [Career].[Title],
+    [CareerItem].[CareerId],
+    [CareerItem].[Title]
+FROM 
+    [Career] 
+INNER JOIN 
+    [CareerItem] ON [CareerItem].[CareerId] = [Career].[Id]
+ORDER BY
+    [Career].[Title]";
+
+            var careers = connection.Query<Career, CareerItem, Career>(
+                sql,
+                (career, item) =>
+                {
+                    return career;
+                }, splitOn: "CareerId");
+
+            foreach (var career in careers)
+            {
+                foreach (var item in career.Items)
+                {
+                    Console.WriteLine($" - {item.Title}");
+                }
+            }
+        }
+
 
     }
 }
