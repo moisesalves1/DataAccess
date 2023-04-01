@@ -285,7 +285,8 @@ ORDER BY
                 }, splitOn: "CareerId");
 
             foreach (var career in careers)
-            {
+            {   
+                Console.WriteLine($"{career.Title}");
                 foreach (var item in career.Items)
                 {
                     Console.WriteLine($" - {item.Title}");
