@@ -29,7 +29,8 @@ namespace DataAccess
                 // OneToMany(connection);
                 // QueryMultiple(connection);
                 // SelectIn(connection);
-                Like(connection, "backend");
+                // Like(connection, "backend");
+                Transaction(connection);
 
 
             }
@@ -301,7 +302,7 @@ ORDER BY
                 }, splitOn: "CareerId");
 
             foreach (var career in careers)
-            {   
+            {
                 Console.WriteLine($"{career.Title}");
                 foreach (var item in career.Items)
                 {
@@ -318,23 +319,23 @@ ORDER BY
                 var categories = multi.Read<Category>();
                 var courses = multi.Read<Course>();
 
-                foreach(var item in categories)
+                foreach (var item in categories)
                 {
                     Console.WriteLine(item.Title);
                 }
 
-                foreach(var item in courses)
+                foreach (var item in courses)
                 {
                     Console.WriteLine(item.Title);
                 }
             }
         }
-    
+
         static void SelectIn(SqlConnection connection)
         {
             var query = @"select * from Career Where [Id] IN @Id";
 
-            var items = connection.Query<Career>(query, new 
+            var items = connection.Query<Career>(query, new
             {
                 Id = new[]{
                     "4327ac7e-963b-4893-9f31-9a3b28a4e72b",
@@ -342,25 +343,71 @@ ORDER BY
                 }
             });
 
-            foreach(var item in items)
+            foreach (var item in items)
             {
                 Console.WriteLine(item.Title);
             }
         }
-    
+
         static void Like(SqlConnection connection, string term)
         {
             var query = @"select * from [Course] Where [Title] LIKE @exp";
 
-            var items = connection.Query<Course>(query, new 
+            var items = connection.Query<Course>(query, new
             {
                 exp = $"%{term}%"
             });
 
-            foreach(var item in items)
+            foreach (var item in items)
             {
                 Console.WriteLine(item.Title);
             }
         }
+
+        static void Transaction(SqlConnection connection)
+        {
+            var category = new Category();
+            category.Id = Guid.NewGuid();
+            category.Title = "Minha categoria que não";
+            category.Url = "amazon";
+            category.Description = "Categoria destinada a serviços do AWS";
+            category.Order = 8;
+            category.Summary = "AWS Cloud";
+            category.Featured = false;
+
+            var insertSql = @"INSERT INTO
+                [Category] 
+             VALUES(
+                @Id, 
+                @Title, 
+                @Url, 
+                @Summary, 
+                @Order, 
+                @Description, 
+                @Featured)";
+
+            connection.Open();
+            using (var transaction = connection.BeginTransaction())
+            {
+                var rows = connection.Execute(insertSql, new
+                {
+                    category.Id,
+                    category.Title,
+                    category.Url,
+                    category.Summary,
+                    category.Order,
+                    category.Description,
+                    category.Featured
+                }, transaction);
+
+                // transaction.Commit();
+                transaction.Rollback();
+
+                Console.WriteLine($"{rows} linhas inseridas");
+            }
+
+            
+        }
+
     }
 }
